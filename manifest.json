@@ -3,11 +3,18 @@
   "name": "YT Thumbnail Face Overlay",
   "version": "1.0",
   "description": "Put a face on YouTube thumbnails",
+  "permissions": ["storage", "tabs"],  
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*"],
       "js": ["content.js"],
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon.png"
+    }
+  }
 }
