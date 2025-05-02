@@ -1,3 +1,4 @@
+
 const faces = [
   "https://i.imgur.com/9lzD2Ug.jpeg",
   "https://i.imgur.com/MskWHJO.jpeg",
@@ -15,164 +16,97 @@ const faces = [
 ];
 
 const styles = [
-  {
-    position: "absolute",
-    width: "30%",
-    maxHeight: `80%`,
-    top: "5px",
-    left: "5px",
-    zIndex: "10",
-    pointerEvents: "none",
-    borderRadius: `12px`,
-  },
-  {
-    position: "absolute",
-    width: "30%",
-    maxHeight: `80%`,
-    top: "5px",
-    right: "5px",
-    zIndex: "10",
-    pointerEvents: "none",
-    borderRadius: `12px`,
-  },
-  {
-    position: "absolute",
-    width: "30%",
-    maxHeight: `80%`,
-    bottom: "5px",
-    left: "5px",
-    zIndex: "10",
-    pointerEvents: "none",
-    borderRadius: `12px`,
-  },
-  {
-    position: "absolute",
-    width: "30%",
-    maxHeight: `80%`,
-    bottom: "5px",
-    right: "5px",
-    zIndex: "10",
-    pointerEvents: "none",
-    borderRadius: `12px`,
-  },
+  { top: "5px", left: "5px" },
+  { top: "5px", right: "5px" },
+  { bottom: "5px", left: "5px" },
+  { bottom: "5px", right: "5px" },
 ];
 
-let titleChange;
-let faceOverlay;
+let faceOverlay = false;
+let titleChange = false;
 
-// Add custom CSS to handle hover effects
-const styleElement = document.createElement('style');
-styleElement.textContent = `
-  /* Base style for face overlays */
-  .face-overlay {
+const styleEl = document.createElement('style');
+styleEl.textContent = `
+  img.face-overlay {
+    position: absolute;
+    width: 30%;
+    max-height: 80%;
+    pointer-events: none;
+    border-radius: 12px;
     transition: opacity 0.2s ease-out;
     opacity: 1;
   }
-  
-  /* Hide face overlays when preview is showing */
-  ytd-thumbnail.ytd-video-preview .face-overlay,
-  ytd-thumbnail:hover .face-overlay {
+  /* hide overlay on any thumbnail hover */
+  ytd-thumbnail:hover > img.face-overlay {
     opacity: 0 !important;
   }
+  /* ensure thumbnail container relative positioning */
+  ytd-thumbnail {
+    position: relative;
+  }
 `;
-document.head.appendChild(styleElement);
-
-// Safely get Chrome storage - using try/catch to prevent errors
-try {
-  chrome.storage.sync.get(["faceOverlay", "titleChange"], (result) => {
-    if (chrome.runtime.lastError) {
-      console.error("Chrome storage error:", chrome.runtime.lastError);
-      // Set defaults if there's an error
-      faceOverlay = false;
-      titleChange = false;
-    } else {
-      faceOverlay = result.faceOverlay ?? false;
-      titleChange = result.titleChange ?? false;
-    }
-    // Apply overlays after getting settings
-    overlayFaces();
-  });
-} catch (e) {
-  console.error("Error accessing Chrome storage:", e);
-  // Set defaults if there's an exception
-  faceOverlay = false;
-  titleChange = false;
-  overlayFaces();
-}
-
-// Safely handle runtime messages - using try/catch to prevent errors
-try {
-  chrome.runtime.onMessage.addListener((message) => {
-    if (message.type === "TOGGLE_VALUES") {
-      titleChange = message.titleChange;
-      faceOverlay = message.faceOverlay;
-      overlayFaces();
-    }
-  });
-} catch (e) {
-  console.error("Error setting up message listener:", e);
-}
+document.head.appendChild(styleEl);
 
 function getRandomFace() {
   return faces[Math.floor(Math.random() * faces.length)];
 }
-
 function getRandomPosition() {
   return styles[Math.floor(Math.random() * styles.length)];
 }
 
+function addOverlay(thumb) {
+  const img = document.createElement('img');
+  img.src = getRandomFace();
+  img.className = 'face-overlay';
+  const pos = getRandomPosition();
+  Object.assign(img.style, pos);
+  thumb.appendChild(img);
+}
+
 function overlayFaces() {
-  document.querySelectorAll("ytd-thumbnail").forEach((thumbnail) => {
-    let existingOverlay = thumbnail.querySelector(".face-overlay");
-    
-    // Remove overlay if disabled
-    if (!faceOverlay && existingOverlay) {
-      existingOverlay.remove();
+  document.querySelectorAll('ytd-thumbnail:not(.ytd-video-preview)').forEach(thumb => {
+    if (!faceOverlay) {
+      const existing = thumb.querySelector('img.face-overlay');
+      existing && existing.remove();
+      return;
     }
-    
-    // Add overlay if enabled and not already present
-    if (faceOverlay && !existingOverlay) {
-      const overlay = document.createElement("img");
-      overlay.src = getRandomFace();
-      overlay.className = "face-overlay";
-      Object.assign(overlay.style, getRandomPosition());
-      thumbnail.appendChild(overlay);
+    if (!thumb.querySelector('img.face-overlay')) {
+      addOverlay(thumb);
     }
-    
-    // Process title changes
-    const renderer = thumbnail.closest(
-      "ytd-video-renderer, ytd-grid-video-renderer, ytd-rich-item-renderer"
-    );
-    
-    const titleEl =
-      renderer?.querySelector("#video-title") ||
-      renderer?.querySelector("yt-formatted-string#video-title");
-    
-    if (titleEl) {
-      if (!titleEl.dataset.modified && titleChange) {
+
+    const container = thumb.closest('ytd-video-renderer, ytd-grid-video-renderer, ytd-rich-item-renderer');
+    if (container) {
+      const titleEl = container.querySelector('#video-title, yt-formatted-string#video-title');
+      if (titleChange && titleEl && !titleEl.dataset.modified) {
         titleEl.dataset.original = titleEl.textContent;
         titleEl.textContent = `Thomas REACTS to ${titleEl.dataset.original}`;
-        titleEl.setAttribute("title", titleEl.textContent);
-        titleEl.dataset.modified = "true";
-      }
-      
-      if (titleEl.dataset.modified && !titleChange) {
-        titleEl.textContent = `${titleEl.dataset.original}`;
-        titleEl.setAttribute("title", titleEl.textContent);
-        titleEl.removeAttribute("data-modified");
-        titleEl.removeAttribute("data-original");
+        titleEl.dataset.modified = 'true';
+      } else if (!titleChange && titleEl && titleEl.dataset.modified) {
+        titleEl.textContent = titleEl.dataset.original;
+        delete titleEl.dataset.modified;
+        delete titleEl.dataset.original;
       }
     }
   });
 }
 
-// Initial overlay application
-overlayFaces();
-
-
-
-// Start observing with a configuration that watches for changes to the DOM tree
-observer.observe(document.body, {
-  childList: true,
-  subtree: true,
+chrome.storage.sync.get(["faceOverlay","titleChange"], res => {
+  if (!chrome.runtime.lastError) {
+    faceOverlay = res.faceOverlay;
+    titleChange = res.titleChange;
+  }
+  overlayFaces();
 });
+chrome.runtime.onMessage.addListener(msg => {
+  if (msg.type === 'TOGGLE_VALUES') {
+    faceOverlay = msg.faceOverlay;
+    titleChange = msg.titleChange;
+    overlayFaces();
+  }
+});
+
+new MutationObserver(mutations => {
+  if (faceOverlay) overlayFaces();
+}).observe(document.body, { childList: true, subtree: true });
+
+overlayFaces();
