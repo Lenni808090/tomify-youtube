@@ -63,6 +63,18 @@ function addOverlay(thumb) {
   thumb.appendChild(img);
 }
 
+function prependTitle(thumb) {
+  const container = thumb.closest('ytd-video-renderer, ytd-grid-video-renderer, ytd-rich-item-renderer');
+  if (container) {
+    const titleEl = container.querySelector('#video-title, yt-formatted-string#video-title');
+    if (titleEl && !titleEl.dataset.modified) {
+      titleEl.insertAdjacentText('afterbegin', 'Thomas REACTS to ');
+      titleEl.dataset.modified = 'true';
+    }
+  }
+}
+
+
 function overlayFaces() {
   document.querySelectorAll('ytd-thumbnail:not(.ytd-video-preview)').forEach(thumb => {
     if (!faceOverlay) {
@@ -78,9 +90,7 @@ function overlayFaces() {
     if (container) {
       const titleEl = container.querySelector('#video-title, yt-formatted-string#video-title');
       if (titleChange && titleEl && !titleEl.dataset.modified) {
-        titleEl.dataset.original = titleEl.textContent;
-        titleEl.textContent = `Thomas REACTS to ${titleEl.dataset.original}`;
-        titleEl.dataset.modified = 'true';
+        prependTitle(thumb);
       } else if (!titleChange && titleEl && titleEl.dataset.modified) {
         titleEl.textContent = titleEl.dataset.original;
         delete titleEl.dataset.modified;
