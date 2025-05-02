@@ -1,16 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "My First Extension",
+  "name": "YT Thumbnail Face Overlay",
   "version": "1.0",
-  "description": "A simple Chrome extension",
-  "action": {
-    "default_popup": "popup.html",
-    "default_icon": "icon.png"
-  },
-  "permissions": ["storage"],
-  "icons": {
-    "16": "icon.png",
-    "48": "icon.png",
-    "128": "icon.png"
-  }
+  "description": "Put a face on YouTube thumbnails",
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
 }
