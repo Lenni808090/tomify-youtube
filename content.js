@@ -169,30 +169,7 @@ function overlayFaces() {
 // Initial overlay application
 overlayFaces();
 
-// Monitor for YouTube's dynamic content loading
-const observer = new MutationObserver((mutations) => {
-  let needsUpdate = false;
-  
-  mutations.forEach(mutation => {
-    // Check if new nodes were added that might contain thumbnails
-    if (mutation.addedNodes && mutation.addedNodes.length) {
-      for (let i = 0; i < mutation.addedNodes.length; i++) {
-        const node = mutation.addedNodes[i];
-        // Check if this node is a thumbnail or contains thumbnails
-        if (node.nodeType === 1 && 
-            (node.matches?.('ytd-thumbnail') || 
-             node.querySelector?.('ytd-thumbnail'))) {
-          needsUpdate = true;
-          break;
-        }
-      }
-    }
-  });
-  
-  if (needsUpdate) {
-    overlayFaces();
-  }
-});
+
 
 // Start observing with a configuration that watches for changes to the DOM tree
 observer.observe(document.body, {
